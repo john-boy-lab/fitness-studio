@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, or } from 'drizzle-orm';
 import { db } from '../db/client';
 import { pictures, Picture, NewPicture } from '../db/schema';
 
@@ -14,6 +14,30 @@ const getUserId = () => 'mock-user-id';
 
 export function usePictures() {
   const queryClient = useQueryClient();
+
+  // Query for all unreviewed pictures (both weight and food)
+  const allUnreviewedPicturesQuery = useQuery({
+    queryKey: ['pictures', 'all', 'unreviewed'],
+    queryFn: async (): Promise<Picture[]> => {
+      const userId = getUserId();
+      const result = await db
+        .select()
+        .from(pictures)
+        .where(
+          and(
+            eq(pictures.user_id, userId),
+            eq(pictures.is_reviewed, false),
+            eq(pictures.review_status, 'pending'),
+            or(
+              eq(pictures.picture_type, 'weight'),
+              eq(pictures.picture_type, 'food')
+            )
+          )
+        )
+        .orderBy(desc(pictures.created_at));
+      return result;
+    },
+  });
 
   // Query for unreviewed weight pictures
   const unreviewedWeightPicturesQuery = useQuery({
@@ -147,10 +171,13 @@ export function usePictures() {
 
   return {
     // Queries
+    allUnreviewedPictures: allUnreviewedPicturesQuery.data || [],
     unreviewedWeightPictures: unreviewedWeightPicturesQuery.data || [],
     unreviewedFoodPictures: unreviewedFoodPicturesQuery.data || [],
+    isLoadingAllPictures: allUnreviewedPicturesQuery.isLoading,
     isLoadingWeightPictures: unreviewedWeightPicturesQuery.isLoading,
     isLoadingFoodPictures: unreviewedFoodPicturesQuery.isLoading,
+    refetchAllPictures: allUnreviewedPicturesQuery.refetch,
     refetchWeightPictures: unreviewedWeightPicturesQuery.refetch,
     refetchFoodPictures: unreviewedFoodPicturesQuery.refetch,
 

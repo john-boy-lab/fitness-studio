@@ -68,10 +68,42 @@ export default function AuthLayout() {
         }}
       />
       <Stack.Screen
+        name="review/index"
+        options={{
+          title: 'Review Queue',
+        }}
+      />
+      <Stack.Screen
         name="review/[id]"
         options={{
           title: 'Review Photo',
           presentation: 'modal',
+        }}
+      />
+      <Stack.Screen
+        name="weight/index"
+        options={{
+          title: 'Weight History',
+        }}
+      />
+      <Stack.Screen
+        name="weight/add"
+        options={{
+          title: 'Log Weight',
+          presentation: 'modal',
+        }}
+      />
+      <Stack.Screen
+        name="weight/camera"
+        options={{
+          title: 'Weight Photo',
+          presentation: 'modal',
+        }}
+      />
+      <Stack.Screen
+        name="weight/[id]"
+        options={{
+          title: 'Weight Entry',
         }}
       />
     </Stack>

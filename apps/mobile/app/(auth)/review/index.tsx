@@ -1,245 +1,202 @@
-import React from 'react';
+/**
+ * Review Queue Screen
+ * Grid view of all unreviewed pictures with type badges
+ */
+
+import { useState, useCallback } from 'react';
 import { useRouter } from 'expo-router';
-import {
-  YStack,
-  XStack,
-  Text,
-  Button,
-  ScrollView,
-  Spinner,
-  Card,
-  Image,
-} from 'tamagui';
-import { Camera, Scale, UtensilsCrossed, ArrowRight } from '@tamagui/lucide-icons';
+import { YStack, XStack, Text, Button, ToggleGroup } from 'tamagui';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Scale, UtensilsCrossed, Layers } from '@tamagui/lucide-icons';
 import { usePictures, useUnreviewedCount } from '../../../hooks/usePictures';
+import { PictureGrid } from '../../../components/review';
+import type { Picture } from '../../../db/schema';
+
+type FilterType = 'all' | 'weight' | 'food';
 
 export default function ReviewQueueScreen() {
   const router = useRouter();
+  const [filter, setFilter] = useState<FilterType>('all');
+  const [refreshing, setRefreshing] = useState(false);
+
   const {
+    allUnreviewedPictures,
     unreviewedWeightPictures,
+    unreviewedFoodPictures,
+    isLoadingAllPictures,
     isLoadingWeightPictures,
+    isLoadingFoodPictures,
+    refetchAllPictures,
     refetchWeightPictures,
+    refetchFoodPictures,
   } = usePictures();
+
   const { data: weightCount = 0 } = useUnreviewedCount('weight');
   const { data: foodCount = 0 } = useUnreviewedCount('food');
-
   const totalCount = weightCount + foodCount;
 
-  const handleReviewWeightPhoto = (id: string) => {
-    router.push(`/review/${id}?type=weight`);
-  };
-
-  const handleReviewNextWeight = () => {
-    if (unreviewedWeightPictures.length > 0) {
-      handleReviewWeightPhoto(unreviewedWeightPictures[0].id);
+  // Get pictures based on filter
+  const displayedPictures = (() => {
+    switch (filter) {
+      case 'weight':
+        return unreviewedWeightPictures;
+      case 'food':
+        return unreviewedFoodPictures;
+      default:
+        return allUnreviewedPictures;
     }
-  };
+  })();
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    });
-  };
+  const isLoading = (() => {
+    switch (filter) {
+      case 'weight':
+        return isLoadingWeightPictures;
+      case 'food':
+        return isLoadingFoodPictures;
+      default:
+        return isLoadingAllPictures;
+    }
+  })();
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([
+        refetchAllPictures(),
+        refetchWeightPictures(),
+        refetchFoodPictures(),
+      ]);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refetchAllPictures, refetchWeightPictures, refetchFoodPictures]);
+
+  const handlePicturePress = useCallback(
+    (picture: Picture) => {
+      router.push(`/(auth)/review/${picture.id}?type=${picture.picture_type}`);
+    },
+    [router]
+  );
 
   return (
-    <YStack flex={1} backgroundColor="$background">
-      {/* Header */}
-      <YStack padding="$4" paddingBottom="$2">
-        <Text fontSize="$8" fontWeight="700">
-          Review Queue
-        </Text>
-        <Text fontSize="$4" color="$gray11">
-          {totalCount > 0
-            ? `${totalCount} photo${totalCount !== 1 ? 's' : ''} awaiting review`
-            : 'All caught up!'}
-        </Text>
-      </YStack>
+    <SafeAreaView style={{ flex: 1 }} edges={['bottom']}>
+      <YStack flex={1} backgroundColor="$background">
+        {/* Header */}
+        <YStack padding="$4" paddingBottom="$2">
+          <Text fontSize="$8" fontWeight="700" color="$gray12">
+            Review Queue
+          </Text>
+          <Text fontSize="$4" color="$gray11">
+            {totalCount > 0
+              ? `${totalCount} photo${totalCount !== 1 ? 's' : ''} awaiting review`
+              : 'All caught up!'}
+          </Text>
+        </YStack>
 
-      <ScrollView flex={1} showsVerticalScrollIndicator={false}>
-        <YStack padding="$4" paddingTop="$2" gap="$4">
-          {/* Weight Photos Section */}
-          <YStack gap="$3">
-            <XStack alignItems="center" justifyContent="space-between">
-              <XStack alignItems="center" gap="$2">
-                <Scale size={20} color="$blue10" />
-                <Text fontSize="$5" fontWeight="600">
-                  Weight Photos
-                </Text>
-                {weightCount > 0 && (
-                  <XStack
-                    backgroundColor="$blue10"
-                    paddingHorizontal="$2"
-                    paddingVertical="$1"
-                    borderRadius="$4"
-                  >
-                    <Text fontSize="$2" color="white" fontWeight="600">
-                      {weightCount}
-                    </Text>
-                  </XStack>
-                )}
-              </XStack>
-              {weightCount > 0 && (
-                <Button
-                  size="$3"
-                  theme="blue"
-                  onPress={handleReviewNextWeight}
-                  iconAfter={<ArrowRight size={16} />}
-                >
-                  Review Next
-                </Button>
-              )}
-            </XStack>
-
-            {isLoadingWeightPictures ? (
-              <YStack alignItems="center" padding="$4">
-                <Spinner size="small" />
-              </YStack>
-            ) : unreviewedWeightPictures.length === 0 ? (
-              <Card
-                padding="$4"
-                backgroundColor="$gray2"
-                borderRadius="$4"
-                alignItems="center"
+        {/* Filter Tabs */}
+        {totalCount > 0 && (
+          <XStack paddingHorizontal="$4" paddingBottom="$3">
+            <ToggleGroup
+              type="single"
+              value={filter}
+              onValueChange={(val) => val && setFilter(val as FilterType)}
+              flex={1}
+            >
+              <ToggleGroup.Item
+                value="all"
+                flex={1}
+                backgroundColor={filter === 'all' ? '$blue5' : '$gray3'}
               >
-                <Camera size={32} color="$gray9" />
-                <Text color="$gray10" marginTop="$2" textAlign="center">
-                  No weight photos to review
-                </Text>
-                <Button
-                  size="$3"
-                  marginTop="$3"
-                  variant="outlined"
-                  onPress={() => router.push('/weight/camera')}
-                >
-                  Take Weight Photo
-                </Button>
-              </Card>
-            ) : (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ gap: 12 }}
-              >
-                {unreviewedWeightPictures.slice(0, 10).map((picture) => (
-                  <Card
-                    key={picture.id}
-                    width={140}
-                    height={180}
-                    overflow="hidden"
-                    pressStyle={{ scale: 0.98, opacity: 0.9 }}
-                    onPress={() => handleReviewWeightPhoto(picture.id)}
-                    animation="quick"
+                <XStack alignItems="center" gap="$1">
+                  <Layers size={16} color={filter === 'all' ? '$blue10' : '$gray10'} />
+                  <Text
+                    fontSize="$3"
+                    fontWeight="500"
+                    color={filter === 'all' ? '$blue10' : '$gray10'}
                   >
-                    <Image
-                      source={{ uri: picture.storage_path }}
-                      width={140}
-                      height={140}
-                      resizeMode="cover"
-                    />
-                    <YStack
-                      padding="$2"
-                      backgroundColor="$background"
-                      flex={1}
-                      justifyContent="center"
-                    >
-                      <Text fontSize="$2" color="$gray11" numberOfLines={1}>
-                        {picture.exif_timestamp
-                          ? formatDate(picture.exif_timestamp)
-                          : formatDate(picture.created_at)}
-                      </Text>
-                    </YStack>
-                  </Card>
-                ))}
-                {unreviewedWeightPictures.length > 10 && (
-                  <Card
-                    width={140}
-                    height={180}
-                    backgroundColor="$gray3"
-                    alignItems="center"
-                    justifyContent="center"
-                    borderRadius="$4"
-                  >
-                    <Text fontSize="$5" fontWeight="600" color="$gray10">
-                      +{unreviewedWeightPictures.length - 10}
-                    </Text>
-                    <Text fontSize="$3" color="$gray9">
-                      more
-                    </Text>
-                  </Card>
-                )}
-              </ScrollView>
-            )}
-          </YStack>
-
-          {/* Food Photos Section (placeholder for Sprint 4) */}
-          <YStack gap="$3">
-            <XStack alignItems="center" gap="$2">
-              <UtensilsCrossed size={20} color="$orange10" />
-              <Text fontSize="$5" fontWeight="600">
-                Food Photos
-              </Text>
-              {foodCount > 0 && (
-                <XStack
-                  backgroundColor="$orange10"
-                  paddingHorizontal="$2"
-                  paddingVertical="$1"
-                  borderRadius="$4"
-                >
-                  <Text fontSize="$2" color="white" fontWeight="600">
-                    {foodCount}
+                    All ({totalCount})
                   </Text>
                 </XStack>
-              )}
-            </XStack>
+              </ToggleGroup.Item>
+              <ToggleGroup.Item
+                value="weight"
+                flex={1}
+                backgroundColor={filter === 'weight' ? '$blue5' : '$gray3'}
+              >
+                <XStack alignItems="center" gap="$1">
+                  <Scale size={16} color={filter === 'weight' ? '$blue10' : '$gray10'} />
+                  <Text
+                    fontSize="$3"
+                    fontWeight="500"
+                    color={filter === 'weight' ? '$blue10' : '$gray10'}
+                  >
+                    Weight ({weightCount})
+                  </Text>
+                </XStack>
+              </ToggleGroup.Item>
+              <ToggleGroup.Item
+                value="food"
+                flex={1}
+                backgroundColor={filter === 'food' ? '$orange5' : '$gray3'}
+              >
+                <XStack alignItems="center" gap="$1">
+                  <UtensilsCrossed
+                    size={16}
+                    color={filter === 'food' ? '$orange10' : '$gray10'}
+                  />
+                  <Text
+                    fontSize="$3"
+                    fontWeight="500"
+                    color={filter === 'food' ? '$orange10' : '$gray10'}
+                  >
+                    Food ({foodCount})
+                  </Text>
+                </XStack>
+              </ToggleGroup.Item>
+            </ToggleGroup>
+          </XStack>
+        )}
 
-            <Card
-              padding="$4"
-              backgroundColor="$gray2"
-              borderRadius="$4"
-              alignItems="center"
-            >
-              <UtensilsCrossed size={32} color="$gray9" />
-              <Text color="$gray10" marginTop="$2" textAlign="center">
-                {foodCount > 0
-                  ? 'Food photo review coming soon'
-                  : 'No food photos to review'}
-              </Text>
-            </Card>
-          </YStack>
+        {/* Picture Grid */}
+        <YStack flex={1}>
+          <PictureGrid
+            pictures={displayedPictures}
+            isLoading={isLoading}
+            onRefresh={handleRefresh}
+            onPicturePress={handlePicturePress}
+            refreshing={refreshing}
+          />
+        </YStack>
 
-          {/* Quick Actions */}
-          <YStack gap="$3" marginTop="$4">
-            <Text fontSize="$4" fontWeight="600">
-              Quick Actions
+        {/* Quick Actions when no pictures */}
+        {totalCount === 0 && !isLoading && (
+          <YStack padding="$4" paddingTop={0} gap="$3">
+            <Text fontSize="$4" fontWeight="600" color="$gray12">
+              Take a photo to get started
             </Text>
             <XStack gap="$3">
               <Button
                 flex={1}
                 size="$4"
-                variant="outlined"
-                onPress={() => router.push('/weight/add')}
+                theme="blue"
                 icon={<Scale size={18} />}
+                onPress={() => router.push('/(auth)/weight/camera')}
               >
-                Log Weight
+                Weight Photo
               </Button>
               <Button
                 flex={1}
                 size="$4"
-                variant="outlined"
-                onPress={() => router.push('/weight/camera')}
-                icon={<Camera size={18} />}
+                theme="orange"
+                icon={<UtensilsCrossed size={18} />}
+                onPress={() => router.push('/(auth)/food/add')}
               >
-                Take Photo
+                Food Photo
               </Button>
             </XStack>
           </YStack>
-        </YStack>
-      </ScrollView>
-    </YStack>
+        )}
+      </YStack>
+    </SafeAreaView>
   );
 }
