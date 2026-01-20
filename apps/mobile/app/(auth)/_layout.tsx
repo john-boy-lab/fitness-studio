@@ -41,6 +41,39 @@ export default function AuthLayout() {
           presentation: 'card',
         }}
       />
+      <Stack.Screen
+        name="food/index"
+        options={{
+          title: 'Food Log',
+        }}
+      />
+      <Stack.Screen
+        name="food/add"
+        options={{
+          title: 'Add Food',
+          presentation: 'modal',
+        }}
+      />
+      <Stack.Screen
+        name="food/search"
+        options={{
+          title: 'Search Food',
+          presentation: 'modal',
+        }}
+      />
+      <Stack.Screen
+        name="food/[id]"
+        options={{
+          title: 'Food Entry',
+        }}
+      />
+      <Stack.Screen
+        name="review/[id]"
+        options={{
+          title: 'Review Photo',
+          presentation: 'modal',
+        }}
+      />
     </Stack>
   );
 }
