@@ -1,0 +1,29 @@
+
+I need a plan for my initial app.
+Initial Architectural decisions are under DECISIONS.MD they may change in the future
+AGENTS.md is required reading to understand how to use beads
+
+I need to create a plan for the app MVP.
+This is a fitness tracking app. It supports.
+
+* Taking pictures of scale for weight
+* Recording weight in lbs
+* If a picture is taken the picture is "unreviewed"
+* Reviewing a picture requires inputting the weight into a text box
+* Users can review pictures at any time
+* Pictures have a time taken from picture metadata
+* That helps inform the day-by-day weight tracking
+
+* Users have a weight loss, gain or maintenance goal
+* Calculates should be simple and in US units such as those on https://www.calculator.net/macro-calculator.html
+* Let users select their goals 0.5/1lb gain/loss a week + target weight
+
+* Taking a picture of food for recording eating
+* Same rules as weight scale for recording with "unreviewed"
+* Users record macros, description of food, etc
+* No meal recording, just timestamp of when it was consumed
+* Calculations are against macro goals
+* Integrate with a free database for easy lookup of food
+* Meals can be associated together
+
+* Goals of meal association is future versions
