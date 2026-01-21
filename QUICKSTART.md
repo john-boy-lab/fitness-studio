@@ -2,13 +2,37 @@
 
 Get the Fitness Studio app running locally.
 
-## Prerequisites
+## Quick Start (Recommended)
+
+```bash
+# First time setup
+./scripts/setup.sh
+
+# Start development (Docker + Expo)
+./scripts/dev.sh
+
+# Stop everything
+./scripts/stop.sh
+```
+
+**Options:**
+- `./scripts/dev.sh --reset` - Reset database and start fresh
+- `./scripts/dev.sh --skip-docker` - Skip Docker (use existing services)
+- `./scripts/dev.sh --web` - Start in web-only mode
+
+---
+
+## Manual Setup
+
+If you prefer to run commands manually:
+
+### Prerequisites
 
 - **Node.js** 18+
 - **pnpm** 9+ (`npm install -g pnpm`)
 - **Docker** (for local Supabase)
 
-## 1. Install Dependencies
+### 1. Install Dependencies
 
 ```bash
 pnpm install
