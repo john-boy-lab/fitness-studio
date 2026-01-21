@@ -66,7 +66,8 @@ if [ "$SKIP_DOCKER" = false ]; then
     fi
 
     echo -e "\n${YELLOW}Starting Docker services...${NC}"
-    docker compose -f docker/docker-compose.yml up -d
+    # Allow partial failure (MinIO healthcheck may fail but services still work)
+    docker compose -f docker/docker-compose.yml up -d || true
 
     echo -e "\n${YELLOW}Waiting for database to be healthy...${NC}"
     for i in {1..30}; do
